@@ -14,12 +14,12 @@ class CategoryView(generics.ListCreateAPIView):
     serializer_class = CategorySerializer
 
 class MenuItemsView(APIView):
-    def get(self, request):
+    def get(self, request, format=None):
         queryset = MenuItem.objects.all()
         serializers = MenuItemSerializer(queryset, many=True)
         return Response(serializers.data)
     
-    def post(self, request):
+    def post(self, request, format=None):
         if request.user.groups.filter(name='Manager').exists():
             serializers = MenuItemSerializer(data=request.data)
             if serializers.is_valid():
@@ -28,15 +28,41 @@ class MenuItemsView(APIView):
             return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
 
-class MenuItem(APIView):
-    def get_menuitem(self, id):
+class MenuItemView(APIView):
+    def get_menuitem(self, pk):
         try:
-            return MenuItem.objects.get(id=id)
+            return  MenuItem.objects.get(pk=pk)
         except MenuItem.DoesNotExist:
-            return Http404
+            raise Http404
 
-    def get(self, request, id):
-        menuitem = self.get_menuitem(id)
+    def get(self, request, pk, format=None):
+        menuitem = self.get_menuitem(pk)
         serializers = MenuItemSerializer(menuitem)
         return Response(serializers.data)
-
+    
+    def put(self, request, pk, format=None):
+        if request.user.groups.filter(name='Manager').exists():
+            menuitem = self.get_menuitem(pk)
+            serializers = MenuItemSerializer(menuitem, data=request.data)
+            if serializers.is_valid():
+                serializers.save()
+                return Response(serializers.data)
+            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    def patch(self, request, pk, format=None):
+        if request.user.groups.filter(name='Manager').exists():
+            menuitem = self.get_menuitem(pk)
+            serializers = MenuItemSerializer(menuitem, data=request.data, partial=True)
+            if serializers.is_valid():
+                serializers.save()
+                return Response(serializers.data)
+            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    def delete(self, request, pk, format=None):
+        if request.user.groups.filter(name='Manager').exists():
+            menuitem = self.get_menuitem(pk)
+            menuitem.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
