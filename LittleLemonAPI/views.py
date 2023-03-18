@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.http import Http404
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import generics
@@ -26,3 +27,16 @@ class MenuItemsView(APIView):
                 return Response(serializers.data, status=status.HTTP_201_CREATED)
             return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+class MenuItem(APIView):
+    def get_menuitem(self, id):
+        try:
+            return MenuItem.objects.get(id=id)
+        except MenuItem.DoesNotExist:
+            return Http404
+
+    def get(self, request, id):
+        menuitem = self.get_menuitem(id)
+        serializers = MenuItemSerializer(menuitem)
+        return Response(serializers.data)
+
