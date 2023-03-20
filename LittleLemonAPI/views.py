@@ -92,5 +92,22 @@ class ManagerView(APIView):
             else:
                 data = serializers.errors
             return Response(serializers.data, status=status.HTTP_201_CREATED)
-                #return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+class SingleManagerView(APIView):
+    def get_manager(self, pk):
+        try:
+            return  User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            raise Http404
+        
+    def delete(self, request, pk, format=None):
+        if request.user.groups.filter(name='Manager').exists():
+            manager = self.get_manager(pk)
+            group = Group.objects.get(name='Manager')
+            if manager.groups.filter(name='Manager').exists():
+                group.user_set.remove(manager)
+                return Response(status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_404_NOT_FOUND)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
