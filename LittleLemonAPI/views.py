@@ -5,7 +5,10 @@ from rest_framework import status
 from rest_framework import generics
 from rest_framework.views import APIView
 from .models import Category,MenuItem,Cart,Order,OrderItem
-from .serializers import CategorySerializer,MenuItemSerializer
+from .serializers import CategorySerializer,MenuItemSerializer,UserSerializer
+from django.contrib.auth.models import User
+from django.contrib.auth.models import Group
+from rest_framework.authtoken.models import Token 
 from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
@@ -65,4 +68,29 @@ class MenuItemView(APIView):
             menuitem = self.get_menuitem(pk)
             menuitem.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+class ManagerView(APIView):
+    def get(self, request, format=None):
+        if request.user.groups.filter(name='Manager').exists():
+            queryset = User.objects.filter(groups__name='Manager')
+            serializers = UserSerializer(queryset, many=True)
+            return Response(serializers.data)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    def post(self, request, format=None):
+        if request.user.groups.filter(name='Manager').exists():
+            serializers = UserSerializer(data=request.data)
+            data = {}
+            manager = Group.objects.get(name='Manager') 
+            if serializers.is_valid():
+                manager.user_set.add(serializers)
+                serializers.save()
+                user = User.objects.get(username=serializers.data['username'])
+                token = Token.objects.create(user=user).key
+                data['token'] = token
+            else:
+                data = serializers.errors
+            return Response(serializers.data, status=status.HTTP_201_CREATED)
+                #return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
