@@ -111,7 +111,7 @@ class SingleManagerView(APIView):
             group = Group.objects.get(name='Manager')
             if manager.groups.filter(name='Manager').exists():
                 manager.groups.remove(group)
-                return Response(status=status.HTTP_200_OK)
+                return Response({"message":"success"}, status=status.HTTP_200_OK)
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
     
@@ -141,6 +141,23 @@ class DeliveryCrewView(APIView):
                 data['token'] = token
                 return Response(serializers.data, status=status.HTTP_201_CREATED)
             return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+class SingleDeliveryCrewView(APIView):
+    def get_delivery_crew(self, pk):
+        try:
+            return  User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            raise Http404
+        
+    def delete(self, request, pk, format=None):
+        if request.user.groups.filter(name='Manager').exists():
+            delivery_crew = self.get_delivery_crew(pk)
+            group = Group.objects.get(name='Delivery crew')
+            if delivery_crew.groups.filter(name='Delivery crew').exists():
+                delivery_crew.groups.remove(group)
+                return Response({"message":"success"}, status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_404_NOT_FOUND)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
     
     
