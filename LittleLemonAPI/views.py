@@ -77,21 +77,24 @@ class ManagerView(APIView):
             serializers = UserSerializer(queryset, many=True)
             return Response(serializers.data)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
-    
-    def post(self, request, format=None):
+
+    def post(self, request):
         if request.user.groups.filter(name='Manager').exists():
             serializers = UserSerializer(data=request.data)
             data = {}
-            manager = Group.objects.get(name='Manager') 
             if serializers.is_valid():
-                manager.user_set.add(serializers)
-                serializers.save()
-                user = User.objects.get(username=serializers.data['username'])
-                token = Token.objects.create(user=user).key
+                created_user = User.objects.create_user(
+                    email = serializers.validated_data['email'],
+                    username = serializers.validated_data['username'],
+                )
+                password = serializers.validated_data['password']
+                created_user.set_password(password)
+                manager = Group.objects.get(name='Manager')
+                created_user.groups.add(manager)
+                created_user.save()
+                token = Token.objects.create(user=created_user).key
                 data['token'] = token
-            else:
-                data = serializers.errors
-            return Response(serializers.data, status=status.HTTP_201_CREATED)
+                return Response(serializers.data, status=status.HTTP_201_CREATED)
             return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -107,7 +110,17 @@ class SingleManagerView(APIView):
             manager = self.get_manager(pk)
             group = Group.objects.get(name='Manager')
             if manager.groups.filter(name='Manager').exists():
-                group.user_set.remove(manager)
+                manager.groups.remove(group)
                 return Response(status=status.HTTP_200_OK)
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+class DeliveryCrewView(APIView):
+    def get(self, request, format=None):
+        if request.user.groups.filter(name='Manager').exists():
+            queryset = User.objects.filter(groups__name='Delivery crew')
+            serializers = UserSerializer(queryset, many=True)
+            return Response(serializers.data)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    
