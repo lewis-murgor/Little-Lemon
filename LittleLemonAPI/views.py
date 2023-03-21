@@ -122,5 +122,25 @@ class DeliveryCrewView(APIView):
             serializers = UserSerializer(queryset, many=True)
             return Response(serializers.data)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    def post(self, request):
+        if request.user.groups.filter(name='Manager').exists():
+            serializers = UserSerializer(data=request.data)
+            data = {}
+            if serializers.is_valid():
+                created_user = User.objects.create_user(
+                    email = serializers.validated_data['email'],
+                    username = serializers.validated_data['username'],
+                )
+                password = serializers.validated_data['password']
+                created_user.set_password(password)
+                delivery_crew = Group.objects.get(name='Delivery crew')
+                created_user.groups.add(delivery_crew)
+                created_user.save()
+                token = Token.objects.create(user=created_user).key
+                data['token'] = token
+                return Response(serializers.data, status=status.HTTP_201_CREATED)
+            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
     
     
