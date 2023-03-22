@@ -20,3 +20,8 @@ class UserSerializer(serializers.ModelSerializer):
 
         extra_kwargs = {'password': {'write_only': True}}
 
+class CartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cart
+        fields = '__all__'
+
