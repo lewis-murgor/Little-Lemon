@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework import generics
 from rest_framework.views import APIView
 from .models import Category,MenuItem,Cart,Order,OrderItem
-from .serializers import CategorySerializer,MenuItemSerializer,UserSerializer
+from .serializers import CategorySerializer,MenuItemSerializer,UserSerializer,CartSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from rest_framework.authtoken.models import Token 
@@ -159,5 +159,11 @@ class SingleDeliveryCrewView(APIView):
                 return Response({"message":"success"}, status=status.HTTP_200_OK)
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+class CartView(generics.ListAPIView):
+    serializer_class = CartSerializer
+
+    def get_queryset(self):
+        return Cart.objects.all().filter(user=self.request.user)
     
     
