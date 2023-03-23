@@ -159,15 +159,23 @@ class SingleDeliveryCrewView(APIView):
                 return Response({"message":"success"}, status=status.HTTP_200_OK)
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
-    
-class CartView(generics.ListCreateAPIView):
-    serializer_class = CartSerializer
 
-    def get_queryset(self):
-        return Cart.objects.all().filter(user=self.request.user)
+class CartView(APIView):
+    def get(self, request):
+        queryset = Cart.objects.all().filter(user=self.request.user)
+        serializers = CartSerializer(queryset, many=True)
+        return Response(serializers.data)
     
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
+    def post(self, request):
+        serializers = CartSerializer(data=request.data)
+        if serializers.is_valid():
+            serializers.save(user=self.request.user)
+            return Response(serializers.data, status=status.HTTP_201_CREATED)
+        return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request):
+        cart = Cart.objects.all().filter(user=self.request.user)
+        cart.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     
     
