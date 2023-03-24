@@ -27,3 +27,8 @@ class CartSerializer(serializers.ModelSerializer):
 
         read_only_fields = ["user"]
 
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = '__all__'
+
