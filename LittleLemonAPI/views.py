@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework import generics
 from rest_framework.views import APIView
 from .models import Category,MenuItem,Cart,Order,OrderItem
-from .serializers import CategorySerializer,MenuItemSerializer,UserSerializer,CartSerializer
+from .serializers import CategorySerializer,MenuItemSerializer,UserSerializer,CartSerializer,OrderSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from rest_framework.authtoken.models import Token 
@@ -177,5 +177,11 @@ class CartView(APIView):
         cart = Cart.objects.all().filter(user=self.request.user)
         cart.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class OrderView(APIView):
+    def get(self, request):
+        queryset = Order.objects.all().filter(user=self.request.user)
+        serializers = OrderSerializer(queryset, many=True)
+        return Response(serializers.data)
     
     
