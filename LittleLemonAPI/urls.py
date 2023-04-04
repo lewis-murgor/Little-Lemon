@@ -12,5 +12,6 @@ urlpatterns = [
     path('groups/delivery-crew/users/<int:pk>', views.SingleDeliveryCrewView.as_view()),
     path('cart/menu-items', views.CartView.as_view()),
     path('orders', views.OrderView.as_view()),
+    path('orders/<int:pk>', views.SingleOrderView.as_view()),
     path('api-token-auth/', obtain_auth_token),
 ]
