@@ -178,11 +178,16 @@ class CartView(APIView):
         cart.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
-class OrderView(generics.ListCreateAPIView):
-    serializer_class = OrderSerializer
-
-    def get_queryset(self):
-        return Order.objects.all().filter(user=self.request.user)
+class OrderView(APIView):
+    def get(self, request):
+        if request.user.groups.filter(name='Manager').exists():
+            queryset = Order.objects.all()
+            serializer = OrderSerializer(queryset, many=True)
+            return Response(serializer.data)
+        else:
+            queryset = Order.objects.all().filter(user=self.request.user)
+            serializer = OrderSerializer(queryset, many=True)
+            return Response(serializer.data)
 
 class SingleOrderView(APIView):
     def get(self, request, pk):
