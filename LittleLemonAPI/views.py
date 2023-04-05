@@ -190,7 +190,41 @@ class OrderView(APIView):
             return Response(serializer.data)
 
 class SingleOrderView(APIView):
+    def get_order(self, pk):
+        try:
+            return  Order.objects.get(pk=pk)
+        except MenuItem.DoesNotExist:
+            raise Http404
+        
     def get(self, request, pk):
         order_items = OrderItem.objects.filter(order=pk)
         serializer = OrderItemSerializer(order_items, many=True)
         return Response(serializer.data)
+    
+    def put(self, request, pk):
+        if request.user.groups.filter(name='Manager').exists():
+            order = self.get_order(pk)
+            serializers = OrderSerializer(order, data=request.data)
+            if serializers.is_valid():
+                serializers.save()
+                return Response(serializers.data)
+            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    def patch(self, request, pk):
+        if request.user.groups.filter(name='Manager').exists():
+            order = self.get_order(pk)
+            serializers = OrderSerializer(order, data=request.data, partial=True)
+            if serializers.is_valid():
+                serializers.save()
+                return Response(serializers.data)
+            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    def delete(self, request, pk):
+        if request.user.groups.filter(name='Manager').exists():
+            order = self.get_order(pk)
+            order.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
