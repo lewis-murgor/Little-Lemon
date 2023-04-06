@@ -189,6 +189,23 @@ class OrderView(APIView):
             serializer = OrderSerializer(queryset, many=True)
             return Response(serializer.data)
 
+    def post(self, request):
+        user = request.user
+        cart_items = Cart.objects.filter(user=user)
+        order_items = []
+        for item in cart_items:
+            order_item = OrderItem()
+            order_item.order = Order.objects.create(user=user, total=item.menuitem.price * item.quantity)
+            order_item.menuitem = item.menuitem
+            order_item.quantity = item.quantity
+            order_item.unit_price = item.unit_price
+            order_item.price = item.price
+            order_item.save()
+            order_items.append(order_item)
+        cart_items.delete()
+        return Response({'message': 'Your order has been created.'}, status=status.HTTP_201_CREATED)
+
+
 class SingleOrderView(APIView):
     def get_order(self, pk):
         try:
