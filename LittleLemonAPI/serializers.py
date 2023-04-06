@@ -38,7 +38,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ('id', 'user', 'delivery_crew', 'status', 'total', 'order_items', 'date')
 
-        read_only_fields = ["user", "date"]
+        read_only_fields = ["user", "date", "total"]
 
     
 
