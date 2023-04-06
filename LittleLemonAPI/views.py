@@ -181,13 +181,21 @@ class CartView(APIView):
 class OrderView(APIView):
     def get(self, request):
         if request.user.groups.filter(name='Manager').exists():
-            queryset = Order.objects.all()
-            serializer = OrderSerializer(queryset, many=True)
-            return Response(serializer.data)
+            orders = Order.objects.all()
+            orders_data = []
+            for order in orders:
+                order_items = OrderItem.objects.filter(order=order)
+                serializer = OrderSerializer({'order':order, 'order_items':order_items})
+                orders_data.append(serializer.data)
+            return Response(orders_data)
         else:
             queryset = Order.objects.all().filter(user=self.request.user)
-            serializer = OrderSerializer(queryset, many=True)
-            return Response(serializer.data)
+            order_data = []
+            for order in queryset:
+                order_items = OrderItem.objects.filter(order=order)
+                serializer = OrderSerializer({'order':order, 'order_items': order_items})
+                order_data.append(serializer.data)
+            return Response(order_data)
 
     def post(self, request):
         user = request.user
@@ -209,12 +217,16 @@ class OrderView(APIView):
 class SingleOrderView(APIView):
     def get_order(self, pk):
         try:
-            return  Order.objects.get(pk=pk)
-        except MenuItem.DoesNotExist:
+            return Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
             raise Http404
         
     def get(self, request, pk):
-        order_items = OrderItem.objects.filter(order=pk)
+        try:
+            order = Order.objects.get(pk=pk, user=self.request.user)
+        except Order.DoesNotExist:
+            return Response({'message': 'You do not have permission to access this order'}, status=status.HTTP_403_FORBIDDEN)
+        order_items = OrderItem.objects.filter(order=order)
         serializer = OrderItemSerializer(order_items, many=True)
         return Response(serializer.data)
     
