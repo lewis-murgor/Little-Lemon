@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework import generics
 from rest_framework.views import APIView
 from .models import Category,MenuItem,Cart,Order,OrderItem
-from .serializers import CategorySerializer,MenuItemSerializer,UserSerializer,CartSerializer,OrderSerializer,OrderItemSerializer
+from .serializers import CategorySerializer,MenuItemSerializer,UserSerializer,CartSerializer,OrderSerializer,OrderItemSerializer,OrderStatusSerializer
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from rest_framework.authtoken.models import Token 
@@ -257,6 +257,15 @@ class SingleOrderView(APIView):
                 serializers.save()
                 return Response(serializers.data)
             return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        elif request.user.groups.filter(name='Delivery crew').exists():
+            order = Order.objects.filter(delivery_crew=request.user, pk=pk).first()
+            if not order:
+                return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+            serializer = OrderStatusSerializer(order, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
 
     def delete(self, request, pk):
