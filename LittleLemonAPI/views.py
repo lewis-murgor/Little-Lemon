@@ -179,7 +179,7 @@ class CartView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class OrderView(APIView):
-    def get(self, request):
+    def get(self, request, format=None):
         if request.user.groups.filter(name='Manager').exists():
             orders = Order.objects.all()
             orders_data = []
@@ -188,6 +188,15 @@ class OrderView(APIView):
                 serializer = OrderSerializer({'order':order, 'order_items':order_items})
                 orders_data.append(serializer.data)
             return Response(orders_data)
+        elif request.user.groups.filter(name='Delivery crew').exists():
+            user = request.user
+            orders = Order.objects.filter(delivery_crew=user)
+            order_data = []
+            for order in orders:
+                order_items = OrderItem.objects.filter(order=order)
+                serializers = OrderSerializer({'order':order, 'order_items': order_items})
+                order_data.append(serializers.data)
+            return Response(order_data)
         else:
             queryset = Order.objects.all().filter(user=self.request.user)
             order_data = []
