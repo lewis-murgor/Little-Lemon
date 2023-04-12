@@ -2,7 +2,8 @@ from django.shortcuts import render
 from django.http import Http404
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework import generics
+from rest_framework import generics, permissions
+from .permissions import IsManager
 from rest_framework.views import APIView
 from .models import Category,MenuItem,Cart,Order,OrderItem
 from .serializers import CategorySerializer,MenuItemSerializer,UserSerializer,CartSerializer,OrderSerializer,OrderItemSerializer,OrderStatusSerializer
@@ -10,26 +11,27 @@ from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from rest_framework.authtoken.models import Token 
 from rest_framework.permissions import IsAuthenticated
+#from rest_framework.filters import OrderingFilter
+#from rest_framework.pagination import PageNumberPagination
+#from django_filters.rest_framework import DjangoFilterBackend
 
 # Create your views here.
 class CategoryView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
-class MenuItemsView(APIView):
-    def get(self, request, format=None):
-        queryset = MenuItem.objects.all()
-        serializers = MenuItemSerializer(queryset, many=True)
-        return Response(serializers.data)
+class MenuItemsView(generics.ListCreateAPIView):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        return MenuItem.objects.all()
     
-    def post(self, request, format=None):
-        if request.user.groups.filter(name='Manager').exists():
-            serializers = MenuItemSerializer(data=request.data)
-            if serializers.is_valid():
-                serializers.save()
-                return Response(serializers.data, status=status.HTTP_201_CREATED)
-            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            self.permission_classes = [IsManager]
+        return super(MenuItemsView, self).get_permissions()
 
 class MenuItemView(APIView):
     def get_menuitem(self, pk):
