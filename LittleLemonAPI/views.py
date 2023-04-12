@@ -11,9 +11,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from rest_framework.authtoken.models import Token 
 from rest_framework.permissions import IsAuthenticated
-#from rest_framework.filters import OrderingFilter
-#from rest_framework.pagination import PageNumberPagination
-#from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 
 # Create your views here.
 class CategoryView(generics.ListCreateAPIView):
@@ -24,6 +23,10 @@ class MenuItemsView(generics.ListCreateAPIView):
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    filterset_fields = ['category', 'price']
+    ordering_fields = ['price']
+    search_fields = ['title', 'category__title']
 
     def get_queryset(self):
         return MenuItem.objects.all()
