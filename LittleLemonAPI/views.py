@@ -182,38 +182,25 @@ class CartView(APIView):
         cart = Cart.objects.all().filter(user=self.request.user)
         cart.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
-class OrderView(APIView):
-    def get(self, request, format=None):
-        if request.user.groups.filter(name='Manager').exists():
-            orders = Order.objects.all()
-            orders_data = []
-            for order in orders:
-                order_items = OrderItem.objects.filter(order=order)
-                serializer = OrderSerializer({'order':order, 'order_items':order_items})
-                orders_data.append(serializer.data)
-            return Response(orders_data)
-        elif request.user.groups.filter(name='Delivery crew').exists():
-            user = request.user
-            orders = Order.objects.filter(delivery_crew=user)
-            order_data = []
-            for order in orders:
-                order_items = OrderItem.objects.filter(order=order)
-                serializers = OrderSerializer({'order':order, 'order_items': order_items})
-                order_data.append(serializers.data)
-            return Response(order_data)
-        else:
-            queryset = Order.objects.all().filter(user=self.request.user)
-            order_data = []
-            for order in queryset:
-                order_items = OrderItem.objects.filter(order=order)
-                serializer = OrderSerializer({'order':order, 'order_items': order_items})
-                order_data.append(serializer.data)
-            return Response(order_data)
 
-    def post(self, request):
+class OrderView(generics.ListCreateAPIView):
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.groups.filter(name='Manager').exists():
+            return Order.objects.all().prefetch_related('order_items')
+        elif user.groups.filter(name='Delivery crew').exists():
+            return Order.objects.filter(delivery_crew=user).prefetch_related('order_items')
+        return Order.objects.filter(user=user).prefetch_related('order_items')
+    
+    def create(self, request, *args, **kwargs):
         user = request.user
         cart_items = Cart.objects.filter(user=user)
+
+        if not cart_items.exists():
+            return Response({"error": "No items in cart"}, status=status.HTTP_404_NOT_FOUND)
+        
         order_items = []
         for item in cart_items:
             order_item = OrderItem()
@@ -222,11 +209,10 @@ class OrderView(APIView):
             order_item.quantity = item.quantity
             order_item.unit_price = item.unit_price
             order_item.price = item.price
-            order_item.save()
             order_items.append(order_item)
+        OrderItem.objects.bulk_create(order_items)
         cart_items.delete()
         return Response({'message': 'Your order has been created.'}, status=status.HTTP_201_CREATED)
-
 
 class SingleOrderView(APIView):
     def get_order(self, pk):
