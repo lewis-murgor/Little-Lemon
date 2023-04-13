@@ -185,6 +185,9 @@ class CartView(APIView):
 
 class OrderView(generics.ListCreateAPIView):
     serializer_class = OrderSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    filterset_fields = ['status']
+    ordering_fields = ['date']
 
     def get_queryset(self):
         user = self.request.user
