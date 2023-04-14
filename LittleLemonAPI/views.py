@@ -79,31 +79,22 @@ class MenuItemView(APIView):
     
 class ManagerView(APIView):
     def get(self, request, format=None):
-        if request.user.groups.filter(name='Manager').exists():
+        if request.user.groups.filter(name='Manager').exists() or request.user.is_staff:
             queryset = User.objects.filter(groups__name='Manager')
             serializers = UserSerializer(queryset, many=True)
             return Response(serializers.data)
         return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
 
     def post(self, request):
-        if request.user.groups.filter(name='Manager').exists():
-            serializers = UserSerializer(data=request.data)
-            data = {}
-            if serializers.is_valid():
-                created_user = User.objects.create_user(
-                    email = serializers.validated_data['email'],
-                    username = serializers.validated_data['username'],
-                )
-                password = serializers.validated_data['password']
-                created_user.set_password(password)
-                manager = Group.objects.get(name='Manager')
-                created_user.groups.add(manager)
-                created_user.save()
-                token = Token.objects.create(user=created_user).key
-                data['token'] = token
-                return Response(serializers.data, status=status.HTTP_201_CREATED)
-            return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"message":"You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+        username = request.data.get('username')
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            raise Http404
+        if request.user.groups.filter(name='Manager').exists() or request.user.is_staff:
+            manager_group = Group.objects.get(name='Manager')
+            user.groups.add(manager_group)
+            return Response({'message': f'{username} has been added to the manager group.'}, status=status.HTTP_201_CREATED)
 
 class SingleManagerView(APIView):
     def get_manager(self, pk):
