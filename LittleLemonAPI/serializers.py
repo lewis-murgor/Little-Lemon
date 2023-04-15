@@ -23,11 +23,14 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
 class CartSerializer(serializers.ModelSerializer):
+    def validate(self, attrs):
+        attrs['price'] = attrs['quantity'] * attrs['unit_price']
+        return attrs
     class Meta:
         model = Cart
         fields = '__all__'
 
-        read_only_fields = ["user"]
+        read_only_fields = ["user", "price"]
 
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
